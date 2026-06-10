@@ -60,11 +60,20 @@ def find_all_assignments() -> Iterator[type[Assignment]]:
 
 
 def get_students() -> Iterable[str]:
-    return set(students + [obj.get_student() for obj in find_all_assignments()])
+    res = set(students + [obj.get_student() for obj in find_all_assignments()])
+    res.remove("Фамилия Имя Отчество, ПМ-XX")
+    return res
+
+
+def pytest_addoption(parser: pytest.Parser) -> None:
+    parser.addoption("--changed-files", action="store", default="")
 
 
 @pytest.fixture(scope="session")
-def all_assignments() -> list[type[Assignment]]:
+def all_assignments(pytestconfig: pytest.Config) -> list[type[Assignment]]:
+    changed_files = set(str(Path(file).resolve()) for file in pytestconfig.getoption("--changed-files").split())
+    if changed_files:
+        return [obj for obj in find_all_assignments() if inspect.getfile(obj) in changed_files]
     return [*find_all_assignments()]
 
 
